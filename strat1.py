@@ -24,7 +24,6 @@ def render():
         # If the revenue target requires targeting more users than available
         if num_customers_to_target == num_users and revenue_target > max_possible_revenue:
             return None, f"Error: The revenue target of {revenue_target} yen exceeds the maximum possible revenue ({max_possible_revenue:.2f} yen) that can be generated from this cluster."
-        print("num_customers_to_target", num_customers_to_target)
         return cashback_budget_needed, num_customers_to_target
 
     # Streamlit UI
