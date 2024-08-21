@@ -98,7 +98,7 @@ def render():
 
     # Function to calculate cashback budget and customers to target
     def calculate_cashback_budget_and_customers(revenue_target):
-        print("mean_monetary from cluster",mean_monetary)
+        # print("mean_monetary from cluster",mean_monetary)
         potential_cashback_budget = avg_cashback * num_users
         max_possible_revenue = mean_monetary * num_users
         if revenue_target < potential_cashback_budget:
