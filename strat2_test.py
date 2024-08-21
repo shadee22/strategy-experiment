@@ -178,6 +178,3 @@ def render():
         compute_metrics(df, current_sales, percentage_increase)
         st.markdown("---")
 
-# Call the render function to run the app
-if __name__ == "__main__":
-    render()

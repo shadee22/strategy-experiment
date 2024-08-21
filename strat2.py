@@ -43,7 +43,13 @@ def compute_metrics(df, current_sales, percentage_increase):
     target_achieve = no_of_customers_to_target_rounded * avg_order_rounded
     profit = target_achieve - cashback_budget
 
-    # Display the metrics using Streamlit
+    sum_of_avg_transaction_values = grouped['Avg_Transaction_Value'].sum()
+    p_condition = sum_of_avg_transaction_values < revenue_target
+
+    if sum_of_avg_transaction_values < revenue_target:
+        st.header("⚠️ Target Not Achievable")
+        st.error(f" **Problem:** The maximum achievable revenue target in this customer segment is **{sum_of_avg_transaction_values:,.2f}**")
+        
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Data")
@@ -52,13 +58,17 @@ def compute_metrics(df, current_sales, percentage_increase):
         st.write(f"**Avg Cashback:** {avg_cashback_rounded}")
         st.write(f"**Cashback %:** {cashback_percentage_rounded}%")
     with col2:
-        st.subheader("Metrics Outputs")
-        st.write(f"**No of Customers to Target:** {no_of_customers_to_target_rounded} (Approx.)")
-        st.write(f"**Cashback Budget:** {round(cashback_budget)}")
-        st.write(f"**Achieved Target:** {round(target_achieve, 3) }")
-        st.write(f"**Profit:** `( Achieved Target - Cashback )` {round(profit, 2)}")
+        if not p_condition:
+            st.subheader("Metrics Outputs")
+            st.write(f"**No of Customers to Target:** {no_of_customers_to_target_rounded} (Approx.)")
+            st.write(f"**Cashback Budget:** {round(cashback_budget)}")
+            st.write(f"**Achieved Target:** {round(target_achieve, 3) }")
+            st.write(f"**Profit:** `( Achieved Target - Cashback )` {round(profit, 2)}")
 
-
+    # sum_of_avg_transaction_values = grouped['Avg_Transaction_Value'].sum()
+    
+    if p_condition:
+        return 
     # Check if profit meets or exceeds the revenue target
     if profit >= revenue_target:
         st.success(f"Yes, we achieved the target successfully with approximately {no_of_customers_to_target_rounded} customers!")
@@ -71,17 +81,27 @@ def compute_metrics(df, current_sales, percentage_increase):
 
     # Display the selected cardholders with only required columns
     st.subheader("Selected Cardholders")
-    st.write(tabulate(top_customers[['cardholder_id', 'Avg_Transaction_Value', 'Avg_Cashback_Value']], headers='keys', tablefmt='html', showindex=False), unsafe_allow_html=True)
+    # st.write(tabulate(top_customers[['cardholder_id', 'Avg_Transaction_Value', 'Avg_Cashback_Value']], headers='keys', tablefmt='html', showindex=False), unsafe_allow_html=True)
 
+    st.dataframe(top_customers[['cardholder_id', 'Avg_Transaction_Value', 'Avg_Cashback_Value']].reset_index(drop=True))        
     # Calculate the sums for the selected cardholders
     sum_avg_transaction = np.round(top_customers['Avg_Transaction_Value'].sum(), 2)
     sum_avg_cashback = np.round(top_customers['Avg_Cashback_Value'].sum(), 2)
     profit_from_selected = sum_avg_transaction - sum_avg_cashback
-
+    sum_of_avg_transaction_values = grouped['Avg_Transaction_Value'].sum()
+    
     st.write(f"**Selected Cardholder's Sum of Avg Transaction Value:** {sum_avg_transaction}")
     st.write(f"**Selected Cardholder's Sum of Avg Cashback Value:** {sum_avg_cashback}")
     st.write(f"**Profit from Selected Cardholders:** {profit_from_selected}")
 
+    
+    if sum_of_avg_transaction_values < revenue_target:
+        st.warning(f"Expected Revenue Target: {revenue_target:,.2f}")
+        st.warning(f"Sorry, the maximum achievable revenue target is {sum_of_avg_transaction_values:,.2f} in this customer segment.")
+        st.warning(f"Please try a value that is less than or equal to {sum_of_avg_transaction_values:,.2f}.")
+        # print("\n" + "="*119 + "\n")
+        return   
+        
     if profit_from_selected >= revenue_target:
         st.success(f"Yes, we achieved the target successfully with the top {no_of_customers_to_target_rounded} customers based on highest Avg Transaction Value!")
     else:
@@ -158,6 +178,3 @@ def render():
         compute_metrics(df, current_sales, percentage_increase)
         st.markdown("---")
 
-# Call the render function to run the app
-if __name__ == "__main__":
-    render()
