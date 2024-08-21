@@ -81,7 +81,6 @@ def compute_metrics(df, current_sales, percentage_increase):
     st.write(f"**Selected Cardholder's Sum of Avg Cashback Value:** {sum_avg_cashback}")
     st.write(f"**Profit from Selected Cardholders:** {profit_from_selected}")
 
-    # Additional conditional check for the selected cardholders
     if profit_from_selected >= revenue_target:
         st.success(f"Yes, we achieved the target successfully with the top {no_of_customers_to_target_rounded} customers based on highest Avg Transaction Value!")
     else:
