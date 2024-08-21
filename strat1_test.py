@@ -80,14 +80,19 @@ def render():
 
     st.markdown(f"<h4>Selected Cluster: {cluster_names[selected_cluster]}</h4>", unsafe_allow_html=True)
 
+    recency = df['Recency'].mean()
+    frequency = df['Frequency'].mean()
+    monetory = df['Monetary'].mean()
+    
         # Button to toggle Cluster Summary Statistics visibility
     with st.expander(f"Summary Statistics of the cluster"):
         st.subheader(f"Cluster {cluster_names[selected_cluster]} Summary Statistics")
         st.write(f"Number of Users: {num_users}")
-        st.write(f"Average Recency: {36.97:.2f} days")
-        st.write(f"Average Frequency: {1.43:.2f} transactions")
-        st.write(f"Average Monetary Value: {mean_monetary:.2f} yen")
-        st.write(f"Average Cashback per User: {avg_cashback:.2f} yen")
+        st.write(f"Average Recency: {recency:.2f} days")
+        st.write(f"Average Frequency: {frequency:.2f} transactions")
+        st.write(f"Average Order Value: {mean_monetary:.2f} ¥")
+        st.write(f"Average Monetary Value: {monetory:.2f} ¥")
+        st.write(f"Average Cashback per User: {avg_cashback:.2f} ¥")
 
 
 
@@ -97,11 +102,11 @@ def render():
         potential_cashback_budget = avg_cashback * num_users
         max_possible_revenue = mean_monetary * num_users
         if revenue_target < potential_cashback_budget:
-            return None, f"Error: The revenue target must be at least {potential_cashback_budget:.2f} yen to cover the minimum cashback budget."
+            return None, f"Error: The revenue target must be at least {potential_cashback_budget:.2f} ¥ to cover the minimum cashback budget."
         num_customers_to_target = min(revenue_target / mean_monetary, num_users)
         cashback_budget_needed = num_customers_to_target * avg_cashback
         if num_customers_to_target == num_users and revenue_target > max_possible_revenue:
-            return None, f"Error: The revenue target of {revenue_target} yen exceeds the maximum possible revenue ({max_possible_revenue:.2f} yen) that can be generated from this cluster."
+            return None, f"Error: The revenue target of {revenue_target} ¥ exceeds the maximum possible revenue ({max_possible_revenue:.2f} ¥) that can be generated from this cluster."
         return cashback_budget_needed, num_customers_to_target
 
 
@@ -117,7 +122,7 @@ def render():
     
     st.markdown("---")
     # Input: Revenue target
-    revenue_target = st.number_input("Enter your Revenue Target (in yen):", min_value=0, step=10000, value=1000000)
+    revenue_target = st.number_input("Enter your Revenue Target (in ¥):", min_value=0, step=10000, value=1000000)
     
     
     # Check if the revenue target has changed
@@ -145,8 +150,8 @@ def render():
             st.error(st.session_state.error)
         else:
             cashback_budget, num_customers = st.session_state.cashback_budget, st.session_state.num_customers
-            st.write(f"**To achieve a revenue target of**  {revenue_target:,.0f} yen:")
-            st.success(f"**Cashback Budget Needed:** {cashback_budget:,.0f} yen")
+            st.write(f"**To achieve a revenue target of**  {revenue_target:,.0f} ¥:")
+            st.success(f"**Cashback Budget Needed:** {cashback_budget:,.0f} ¥")
             st.success(f"**Number of Customers to Target:** {num_customers:,.0f} customers")
             
             df = pd.read_csv(data_file_path)
@@ -173,8 +178,8 @@ def render():
                 # Recalculate based on adjusted number of customers
                 adjusted_cashback_budget = adjusted_num_customers * avg_cashback
                 adjusted_target_revenue = adjusted_num_customers * mean_monetary
-                st.success(f"**Adjusted Cashback Budget:** {adjusted_cashback_budget:,.0f} yen")
-                st.success(f"**Adjusted Target Revenue:** {adjusted_target_revenue:,.0f} yen")
+                st.success(f"**Adjusted Cashback Budget:** {adjusted_cashback_budget:,.0f} ¥")
+                st.success(f"**Adjusted Target Revenue:** {adjusted_target_revenue:,.0f} ¥")
                 
                 df_sorted = df.sort_values(by='Monetary', ascending=False)
                 # Select top customers based on final_num_customers
@@ -202,7 +207,7 @@ def render():
                 final_num_customers = adjusted_cashback_amount / avg_cashback
                 final_target_revenue = final_num_customers * mean_monetary
                 st.success(f"**Final Number of Customers to Target:**  {final_num_customers:.0f} customers")
-                st.success(f"**Final Adjusted Target Revenue:** {final_target_revenue:,.0f} yen")
+                st.success(f"**Final Adjusted Target Revenue:** {final_target_revenue:,.0f} ¥")
                 
                 # Sort by Monetary value in descending order
                 df_sorted = df.sort_values('Monetary', ascending=False)

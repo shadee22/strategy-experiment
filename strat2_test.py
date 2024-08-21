@@ -55,8 +55,9 @@ def compute_metrics(df, current_sales, percentage_increase):
         st.subheader("Metrics Outputs")
         st.write(f"**No of Customers to Target:** {no_of_customers_to_target_rounded} (Approx.)")
         st.write(f"**Cashback Budget:** {round(cashback_budget)}")
-        st.write(f"**Target Achieve:** {round(target_achieve, 3) }")
-        st.write(f"**Profit:** {round(profit, 2)}")
+        st.write(f"**Achieved Target:** {round(target_achieve, 3) }")
+        st.write(f"**Profit:** `( Achieved Target - Cashback )` {round(profit, 2)}")
+
 
     # Check if profit meets or exceeds the revenue target
     if profit >= revenue_target:
