@@ -50,12 +50,15 @@ def compute_metrics(df, current_sales, percentage_increase):
         st.header("⚠️ Target Not Achievable")
         st.error(f" **Problem:** The maximum achievable revenue target in this customer segment is **{sum_of_avg_transaction_values:,.2f}**")
         
+    min, max = df["transaction_amount"].min(), df["transaction_amount"].max()
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Data")
         st.write(f"**No of Customers in Cluster:** {grouped['cardholder_id'].nunique()}")
         st.write(f"**Avg Order:** {avg_order_rounded}")
         st.write(f"**Avg Cashback:** {avg_cashback_rounded}")
+        st.write(f"**Minimum Order value:** {min}")
+        st.write(f"**Maximum Order value :** {max}")
         st.write(f"**Cashback %:** {cashback_percentage_rounded}%")
     with col2:
         if not p_condition:

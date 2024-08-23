@@ -83,7 +83,9 @@ def render():
     recency = df['Recency'].mean()
     frequency = df['Frequency'].mean()
     monetory = df['Monetary'].mean()
+    # order_value = df["Order Value"].mean()
     
+
         # Button to toggle Cluster Summary Statistics visibility
     with st.expander(f"Summary Statistics of the cluster"):
         st.subheader(f"Cluster {cluster_names[selected_cluster]} Summary Statistics")
@@ -93,6 +95,7 @@ def render():
         st.write(f"Average Order Value: {mean_monetary:.2f} ¥")
         st.write(f"Average Monetary Value: {monetory:.2f} ¥")
         st.write(f"Average Cashback per User: {avg_cashback:.2f} ¥")
+        # st.write(f"Order value: {order_value:.2f} ¥")
 
 
 

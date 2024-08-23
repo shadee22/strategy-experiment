@@ -1,5 +1,5 @@
 import streamlit as st
-# import  strat2_test as strat2
+import  strat2_test as strat2
 # import  strat1_test as strat1
 import  strat1 as strat1
 import strat2 as strat2
