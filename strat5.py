@@ -16,6 +16,11 @@ def load_data(selected_cluster):
     data_file_path = f"{DATA_FILE_BASE_PATH}rfm_cluster_{selected_cluster}.csv"
     return pd.read_csv(data_file_path)
 
+def load_full_data(selected_cluster):
+    path = f'{DATA_FILE_BASE_PATH}Full Dataset of Cluster {selected_cluster}.csv'
+    return pd.read_csv(path)
+
+    
 def get_cluster_statistics(selected_cluster):
     path = f'{DATA_FILE_BASE_PATH}Full Dataset of Cluster {selected_cluster}.csv'
     df = pd.read_csv(path)
@@ -33,9 +38,10 @@ def get_cluster_statistics(selected_cluster):
     avg_cashback = grouped['Avg_Cashback_Value'].mean()
 
     return {
-        'avg_order': math.floor(avg_order),
+    'avg_order': math.floor(avg_order),
         'avg_cashback': math.floor(avg_cashback),
-        'cardholder_count': grouped['cardholder_id'].nunique()
+        'cardholder_count': grouped['cardholder_id'].nunique(), 
+        'df': grouped
     }
 
 def calculate_cashback_budget_and_customers(revenue_target, avg_order, avg_cashback, num_users):
@@ -44,14 +50,30 @@ def calculate_cashback_budget_and_customers(revenue_target, avg_order, avg_cashb
     
     if revenue_target < potential_cashback_budget:
         return None, f"Error: The revenue target must be at least {math.floor(potential_cashback_budget)} ¥ to cover the minimum cashback budget."
-    
+
     num_customers_to_target = min(revenue_target / avg_order, num_users)
     cashback_budget_needed = num_customers_to_target * avg_cashback
     
     if num_customers_to_target == num_users and revenue_target > max_possible_revenue:
         return None, f"Error: The revenue target of {revenue_target} ¥ exceeds the maximum possible revenue ({math.floor(max_possible_revenue)} ¥) that can be generated from this cluster."
-    
-    return cashback_budget_needed, num_customers_to_target
+    days_to_achieve_target, no_of_customers_to_target, avg_transaction_duration, total_daily_revenue = calculate_days_to_achieve_target( revenue_target, avg_order, avg_cashback)
+    return cashback_budget_needed, num_customers_to_target, days_to_achieve_target, no_of_customers_to_target
+ 
+def calculate_days_to_achieve_target( revenue_target, avg_order, avg_cashback):
+    df = load_full_data(st.session_state.selected_cluster)
+    df['transaction_date'] = pd.to_datetime(df['transaction_date'])
+    df = df.sort_values(by=['cardholder_id', 'transaction_date'])
+    df['transaction_duration'] = df.groupby('cardholder_id')['transaction_date'].diff().dt.days
+    avg_duration_per_user = df.groupby('cardholder_id')['transaction_duration'].mean()
+
+    avg_transaction_duration = math.ceil(avg_duration_per_user.mean()) 
+
+    no_of_customers_to_target = math.ceil(revenue_target / (avg_order - avg_cashback))
+    daily_revenue_per_customer = math.floor((avg_order - avg_cashback) / avg_transaction_duration)  
+    total_daily_revenue = math.floor(no_of_customers_to_target * daily_revenue_per_customer)  
+    days_to_achieve_target = math.ceil(revenue_target / total_daily_revenue) 
+
+    return days_to_achieve_target, no_of_customers_to_target, avg_transaction_duration, total_daily_revenue
 
 def display_cluster_summary(cluster_stats, df):
     st.subheader(f"Cluster Summary Statistics")
@@ -62,10 +84,11 @@ def display_cluster_summary(cluster_stats, df):
     st.write(f"Average Monetary Value: {math.floor(df['Monetary'].mean()):.2f} ¥")
     st.write(f"Average Cashback per User: {cluster_stats['avg_cashback']:.2f} ¥")
 
-def display_results(revenue_target, cashback_budget, num_customers, df, prefix=""):
+def display_results(revenue_target, cashback_budget, num_customers,days_to_achieve_target,df, prefix=""):
     st.write(f"**To achieve a revenue target of** {math.floor(revenue_target):,.0f} ¥:")
     st.success(f"**{prefix}Cashback Budget Needed:** {math.floor(cashback_budget):,.0f} ¥")
     st.success(f"**{prefix}Number of Customers to Target:** {math.ceil(num_customers):,.0f} customers")
+    st.success(f"**{prefix}Days to Achieve Target:** {math.floor(days_to_achieve_target):,.0f} ")
     
     top_customers = df.sort_values('Monetary', ascending=False).head(math.ceil(num_customers)).reset_index(drop=True)
     
@@ -80,7 +103,7 @@ def display_results(revenue_target, cashback_budget, num_customers, df, prefix="
         key=f"download_{prefix.lower()}"
     )
 
-def render_sliders_and_results(avg_cashback, avg_order, initial_num_customers, initial_cashback_budget, df):
+def render_sliders_and_results(avg_cashback, avg_order, initial_num_customers, initial_cashback_budget, days_to_achieve_target, df):
     if 'adjusted_num_customers' not in st.session_state:
         st.session_state.adjusted_num_customers = int(math.ceil(initial_num_customers))
     if 'adjusted_cashback_amount' not in st.session_state:
@@ -102,7 +125,7 @@ def render_sliders_and_results(avg_cashback, avg_order, initial_num_customers, i
     adjusted_cashback_budget = math.floor(adjusted_num_customers * avg_cashback)
     adjusted_target_revenue = math.floor(adjusted_num_customers * avg_order)
 
-    display_results(adjusted_target_revenue, adjusted_cashback_budget, adjusted_num_customers, df, prefix="Adjusted ")
+    display_results(adjusted_target_revenue, adjusted_cashback_budget, adjusted_num_customers, days_to_achieve_target, df, prefix="Adjusted ")
 
     st.markdown("---")
 
@@ -118,7 +141,7 @@ def render_sliders_and_results(avg_cashback, avg_order, initial_num_customers, i
     final_num_customers = math.ceil(adjusted_cashback_amount / avg_cashback)
     final_target_revenue = math.floor(final_num_customers * avg_order)
 
-    display_results(final_target_revenue, adjusted_cashback_amount, final_num_customers, df, prefix="Final ")
+    display_results(final_target_revenue, adjusted_cashback_amount, final_num_customers, days_to_achieve_target, df, prefix="Final ")
 
 def render():
     st.image("./Data/assets/logo.png", width=200)
@@ -172,15 +195,17 @@ def render():
     result = calculate_cashback_budget_and_customers(st.session_state.revenue_target, cluster_stats['avg_order'], cluster_stats['avg_cashback'], cluster_stats['cardholder_count'])
     
     if isinstance(result[0], float):
-        cashback_budget, num_customers = result
-        display_results(st.session_state.revenue_target, cashback_budget, num_customers, df, prefix="Initial ")
+        cashback_budget_needed, num_customers_to_target, days_to_achieve_target, no_of_customers_to_target= result
+        print('different num of customers: ', num_customers_to_target)
+        print('different num of customers 2: ', no_of_customers_to_target)
+        display_results(st.session_state.revenue_target, cashback_budget_needed, num_customers_to_target, days_to_achieve_target, df, prefix="Initial ")
         st.session_state.calculation_done = True
     else:
         st.error(result[1])
         st.session_state.calculation_done = False
 
     if st.session_state.calculation_done:
-        render_sliders_and_results(cluster_stats['avg_cashback'], cluster_stats['avg_order'], num_customers, cashback_budget, df)
+        render_sliders_and_results(cluster_stats['avg_cashback'], cluster_stats['avg_order'], num_customers_to_target, cashback_budget_needed, days_to_achieve_target, df=df)
 
 # if __name__ == "__main__":
 #     render()
