@@ -1,16 +1,14 @@
 import streamlit as st
 import pandas as pd
 import math
+from helpers.compute_metrics import custom_metric
+from helpers.compute_metrics import CLUSTER_NAMES
+
+
 
 # Constants
 DATA_FILE_BASE_PATH = './Data/cluster_calculation/hashed/'
-CLUSTER_NAMES = [
-    'Loyal High Spenders', 
-    'At-Risk Low Spenders', 
-    'Top VIPs', 
-    'New or Infrequent Shoppers', 
-    'Occasional Bargain Seekers'
-]
+
 
 def load_data(selected_cluster):
     data_file_path = f"{DATA_FILE_BASE_PATH}rfm_cluster_{selected_cluster}.csv"
@@ -78,18 +76,21 @@ def calculate_days_to_achieve_target( revenue_target, avg_order, avg_cashback):
 def display_cluster_summary(cluster_stats, df):
     st.subheader(f"Cluster Summary Statistics")
     st.write(f"Number of Users: {cluster_stats['cardholder_count']}")
-    st.write(f"Average Recency: {math.ceil(df['Recency'].mean())} days")
-    st.write(f"Average Frequency: {math.ceil(df['Frequency'].mean())} transactions")
+    st.write(f"Average **(R)** Recency: {math.ceil(df['Recency'].mean())} days")
+    st.write(f"Average **(F)** Frequency: {math.ceil(df['Frequency'].mean())} transactions")
+    st.write(f"Average **(M)** Monetary Value: {math.floor(df['Monetary'].mean()):.2f} ¥")
     st.write(f"Average Order Value: {cluster_stats['avg_order']:.2f} ¥")
-    st.write(f"Average Monetary Value: {math.floor(df['Monetary'].mean()):.2f} ¥")
     st.write(f"Average Cashback per User: {cluster_stats['avg_cashback']:.2f} ¥")
 
 def display_results(revenue_target, cashback_budget, num_customers,days_to_achieve_target,df, prefix=""):
     st.write(f"**To achieve a revenue target of** {math.floor(revenue_target):,.0f} ¥:")
-    st.success(f"**{prefix}Cashback Budget Needed:** {math.floor(cashback_budget):,.0f} ¥")
-    st.success(f"**{prefix}Number of Customers to Target:** {math.ceil(num_customers):,.0f} customers")
-    st.success(f"**{prefix}Days to Achieve Target:** {math.floor(days_to_achieve_target):,.0f} ")
-    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(custom_metric(label=f"{prefix}Cashback Budget Needed", value=f"{math.floor(cashback_budget):,.0f} ¥"), unsafe_allow_html=True)
+        st.markdown(custom_metric(label=f"{prefix}Days to Achieve Target", value=f"{math.floor(days_to_achieve_target):,.0f} Days"), unsafe_allow_html=True)
+    with col2:
+        st.markdown(custom_metric(label=f"{prefix}Number of Customers to Target", value=f"{math.ceil(num_customers):,.0f} customers"), unsafe_allow_html=True)
+
     top_customers = df.sort_values('Monetary', ascending=False).head(math.ceil(num_customers)).reset_index(drop=True)
     
     st.subheader(f"{prefix}Top Customers Preview")
