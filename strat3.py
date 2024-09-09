@@ -13,14 +13,11 @@ def compute_metrics(df, current_sales, percentage_increase):
     revenue_target = math.floor(current_sales * (1 + percentage_increase / 100))  # Floor the revenue target
 
     df['transaction_date'] = pd.to_datetime(df['transaction_date'])
-
     df = df.sort_values(by=['cardholder_id', 'transaction_date'])
-
     df['transaction_duration'] = df.groupby('cardholder_id')['transaction_date'].diff().dt.days
-
     avg_duration_per_user = df.groupby('cardholder_id')['transaction_duration'].mean()
 
-    avg_transaction_duration = math.ceil(avg_duration_per_user.mean())  # Ceil the average transaction duration
+    avg_transaction_duration = math.ceil(avg_duration_per_user.mean())  
 
     grouped = df.groupby('cardholder_id').agg(
         Total_Transaction_Value=('transaction_amount', 'sum'),
@@ -36,7 +33,7 @@ def compute_metrics(df, current_sales, percentage_increase):
 
     cashback_percentage = (avg_cashback / avg_order) * 100
 
-    max_potential_revenue = math.floor(grouped['Total_Transaction_Value'].sum() - grouped['Total_Cashback_Value'].sum())  # Floor the maximum potential revenue
+    max_potential_revenue = math.floor(grouped['Total_Transaction_Value'].sum() - grouped['Total_Cashback_Value'].sum()) 
 
     if max_potential_revenue < revenue_target:
         st.error(f"Sorry, the revenue target of {revenue_target:,} ¥ cannot be achieved with the selected cluster.")
@@ -45,11 +42,8 @@ def compute_metrics(df, current_sales, percentage_increase):
         return
 
     no_of_customers_to_target = math.ceil(revenue_target / (avg_order - avg_cashback))
-
     daily_revenue_per_customer = math.floor((avg_order - avg_cashback) / avg_transaction_duration)  # Floor the daily revenue per customer
-
     total_daily_revenue = math.floor(no_of_customers_to_target * daily_revenue_per_customer)  # Floor the total daily revenue
-
     days_to_achieve_target = math.ceil(revenue_target / total_daily_revenue)  # Ceil the days to achieve the target
 
     st.subheader("Data")

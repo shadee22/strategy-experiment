@@ -71,18 +71,117 @@ def compute_metrics(df, current_sales, percentage_increase, required_days_to_ach
 
     # Calculate Days to Achieve Target
     days_to_achieve_target = math.ceil(revenue_target / total_daily_revenue)  # Ceil the days to achieve the target
-
+    cashback_percentage = (avg_cashback / avg_order) * 100  
+    # Custom CSS to style the metrics
+    st.markdown("""
+    <style>
+        .metric-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .metric-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .metric-value {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .metric-delta {
+            color: #28a745;
+            font-size: 14px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    # Function to create a custom metric with border
+    def custom_metric(label, value, delta):
+        return f"""
+        <div class="metric-container">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">{value}</div>
+            <div class="metric-delta">↑ {delta}</div>
+        </div>
+        """
+    with st.expander(f"Summary Statistics of the cluster"):
+        st.write(f"**No of Customers in Cluster:** {grouped['cardholder_id'].nunique():,}")
+        st.write(f"**Avg Order:** {math.floor(avg_order):,} ¥")  # Floor the average order value
+        st.write(f"**Avg Cashback:** {math.floor(avg_cashback):,} ¥")  # Floor the average cashback value
+        st.write(f"**Cashback %:** {round(cashback_percentage)}%")  # Rounded to nearest whole number
+        st.write(f"**Avg Transaction Duration:** {avg_transaction_duration} days")  # Ceiled value
     # Display metrics in Streamlit
     st.subheader("Metrics Outputs")
     st.write(f"**No of Customers to Target to Achieve Revenue Target in {math.ceil(required_days_to_achieve_target)} Days:** {no_of_customers_to_target:,} (Approx.)")
     st.write(f"**Daily Revenue per Customer:** {daily_revenue_per_customer:,} ¥")
     st.write(f"**Total Daily Revenue from Targeted Customers:** {total_daily_revenue:,} ¥")
     st.write(f"**Estimated Days to Achieve Target with Current Average Transaction Duration:** {days_to_achieve_target:,} days")
+    
+    # Create two columns
+    # col1, col2 = st.columns(2)
 
+    # # First column
+    # with col1:
+    #     st.metric(
+    #         label="No. of Customers to Target",
+    #         value=f"{no_of_customers_to_target:,}",
+    #         delta=f"in {math.ceil(required_days_to_achieve_target)} Days"
+    #     )
+    #     st.metric(
+    #         label="Daily Revenue per Customer",
+    #         value=f"{daily_revenue_per_customer:,} ¥"
+    #     )
+
+    # # Second column
+    # with col2:
+    #     st.metric(
+    #         label="Total Daily Revenue",
+    #         value=f"{total_daily_revenue:,} ¥",
+    #         delta="from Targeted Customers"
+    #     )
+    #     st.metric(
+    #         label="Est. Days to Achieve Target",
+    #         value=f"{days_to_achieve_target:,}",
+    #         delta="with Current Avg Transaction Duration"
+    #     )
+    
+    
+    # Create two columns
+    col1, col2 = st.columns(2)
+
+    # First column
+    with col1:
+        st.markdown(custom_metric("No. of Customers to Target", "7", "in 10 Days"), unsafe_allow_html=True)
+        st.markdown(custom_metric("Daily Revenue per Customer", "177 ¥", ""), unsafe_allow_html=True)
+
+    # Second column
+    with col2:
+        st.markdown(custom_metric("Total Daily Revenue", "1,239 ¥", "from Targeted Customers"), unsafe_allow_html=True)
+        st.markdown(custom_metric("Est. Days to Achieve Target", "10", "with Current Avg Transaction Duration"), unsafe_allow_html=True)
     if days_to_achieve_target <= required_days_to_achieve_target:
         st.success(f"Yes, we can achieve the target in approximately {days_to_achieve_target:,} days with {no_of_customers_to_target:,} targeted customers!")
     else:
         st.warning(f"It may take longer than {math.ceil(required_days_to_achieve_target)} days to achieve the target with {no_of_customers_to_target:,} customers.")
+
+    top_customers = grouped.sort_values(by='Avg_Transaction_Value', ascending=False).head(no_of_customers_to_target)
+
+    st.subheader("Selected Cardholders")
+    st.dataframe(top_customers[['cardholder_id', 'Avg_Transaction_Value', 'Avg_Cashback_Value']].reset_index(drop=True))
+
+    sum_avg_transaction = math.floor(top_customers['Avg_Transaction_Value'].sum())  # Floor the sum of avg transaction values
+    sum_avg_cashback = math.floor(top_customers['Avg_Cashback_Value'].sum())  # Floor the sum of avg cashback values
+    profit_from_selected = math.floor(sum_avg_transaction - sum_avg_cashback)  # Floor the profit from selected customers
+
+    st.write(f"**Selected Cardholder's Sum of Avg Transaction Value:** {sum_avg_transaction:,} ¥")
+    st.write(f"**Selected Cardholder's Sum of Avg Cashback Value:** {sum_avg_cashback:,} ¥")
+    st.write(f"**Profit from Selected Cardholders:** {profit_from_selected:,} ¥")
+
+    if profit_from_selected >= revenue_target:
+        st.success(f"Yes, we achieved the target successfully with the top {no_of_customers_to_target:,} customers based on highest Avg Transaction Value!")
+    else:
+        st.error(f"Sorry, we cannot achieve the target with the top {no_of_customers_to_target:,} customers based on highest Avg Transaction Value.")
+
+    st.markdown("---")
 
 def render():
     st.title("Cluster-Based Revenue Increase Strategy")
